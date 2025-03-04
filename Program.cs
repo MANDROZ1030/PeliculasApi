@@ -7,7 +7,10 @@ builder.Services.AddControllers();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
+builder.Services.AddOutputCache(opciones =>
+{
+    opciones.DefaultExpirationTimeSpan = TimeSpan.FromSeconds(20);
+});
 
 var app = builder.Build();
 
@@ -20,9 +23,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
+app.UseOutputCache();
 app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
