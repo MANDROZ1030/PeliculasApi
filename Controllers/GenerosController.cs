@@ -6,21 +6,39 @@ using PeliculasApi.Entidades;
 namespace PeliculasApi.Controllers
 {
     [Route("api/generos")]
+    [ApiController]
     public class GenerosController : ControllerBase
     {
+        private readonly IRepositorio repositorio;
+        private readonly IOutputCacheStore outputCacheStore;
+        private const string cacheTag = "generos";
+
+        public IConfiguration Configuration { get; }
+
+        public GenerosController(IRepositorio repositorio, IOutputCacheStore outputCacheStore , IConfiguration configuration)
+        {
+            this.repositorio = repositorio;
+            this.outputCacheStore = outputCacheStore;
+            Configuration = configuration;
+        }
+
+
+
         [HttpGet("obtenerTodos")]
-        [OutputCache]
+        [OutputCache(Tags = [cacheTag])]
+
         public List<Genero> Get()
         {
-            return new RepositorioEnMemoria().ObtenerTodosLosGeneros();
+            return repositorio.ObtenerTodosLosGeneros();
         }
 
         [HttpGet("{id}")]
-        [OutputCache]
+        [OutputCache(Tags = [cacheTag])]
+
         public async Task<ActionResult<Genero>> GetById(int id)
         {
 
-            var genero = await new RepositorioEnMemoria().ObtenerPorId(id);
+            var genero = await repositorio.ObtenerPorId(id);
 
             if (genero is null)
             {
@@ -32,9 +50,21 @@ namespace PeliculasApi.Controllers
 
 
         [HttpPost]
-        public void Post(Genero genero)
+        public async Task<IActionResult> Post([FromBody] Genero genero)
         {
+            var yaExisteGenero = repositorio.Existe(genero.Nombre);
+            if (yaExisteGenero)
+            {
+                return BadRequest($"Ya existe un género con el nombre {genero.Nombre}");
 
+            }
+
+            repositorio.Crear(genero);
+
+            await outputCacheStore.EvictByTagAsync(cacheTag, default);
+
+
+            return Ok();
         }
 
         [HttpPut]
